@@ -1,0 +1,22 @@
+{
+  "name": "GeoRiva CDS",
+  "version": "0.0.1",
+  "description": "GeoRiva plugin for downloading and ingesting Copernicus Climate Data Store (CDS) data. Ships a reusable CDS fetch strategy and a CMIP6 (C3S Interactive Climate Atlas) data feed; designed to be extended to ERA5 and other CDS datasets.",
+  "author": "WMO RAF",
+  "author_url": "https://github.com/wmo-raf",
+  "url": "https://github.com/wmo-raf/georiva-source-cds",
+  "license": "MIT",
+  "contact": "TODO",
+  "requires_env": [
+    {
+      "name": "CDSAPI_KEY",
+      "required": true,
+      "description": "Copernicus CDS API key, read by cdsapi.Client() at fetch time. Get one at https://cds.climate.copernicus.eu/profile (and accept the multi-origin-c3s-atlas licence)."
+    },
+    {
+      "name": "CDSAPI_URL",
+      "required": false,
+      "description": "CDS API endpoint. Defaults to https://cds.climate.copernicus.eu/api."
+    }
+  ]
+}

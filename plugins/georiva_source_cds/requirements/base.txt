@@ -1,0 +1,5 @@
+# Pinned/compiled deps would normally be generated via pip-compile.
+# Direct dependencies for the CDS plugin:
+cdsapi>=0.7.0
+xarray>=2024.0.0
+netcdf4>=1.6.0

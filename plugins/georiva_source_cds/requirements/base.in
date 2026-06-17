@@ -1,0 +1,8 @@
+cdsapi>=0.7.0
+xarray>=2024.0.0
+netcdf4>=1.6.0
+
+# Provided by GeoRiva core (listed here to document the dependency; do not
+# re-pin to avoid conflicting with core's versions):
+#   django-countries
+#   django-countries-geoextent
