@@ -19,6 +19,7 @@ schedule.
 
 from dataclasses import dataclass
 
+from django import forms
 from django.db import models
 from django_countries.fields import CountryField
 from django_countries_geoextent import get_country_extent
@@ -184,6 +185,9 @@ BIAS_ADJUSTMENT_CHOICES = [
     ("isimip", "ISIMIP method"),
 ]
 
+# Default CDS API endpoint, used when the feed leaves cds_url blank.
+DEFAULT_CDS_URL = "https://cds.climate.copernicus.eu/api"
+
 
 # ---------------------------------------------------------------------------
 # Per-collection link — bakes in the experiment (not operator-editable)
@@ -237,7 +241,17 @@ class CMIP6DataFeed(DataFeed, TimeStampedModel):
         default="none",
         help_text="Bias-adjustment variant. 'None' (raw) is recommended and supported by all variables.",
     )
-    
+
+    cds_url = models.URLField(
+        blank=True,
+        default=DEFAULT_CDS_URL,
+        help_text=f"CDS API endpoint. Leave blank to use the default ({DEFAULT_CDS_URL}).",
+    )
+    cds_key = models.CharField(
+        max_length=255,
+        help_text="CDS API key (Personal Access Token). Required.",
+    )
+
     panels = [
         *DataFeed.base_panels,
         MultiFieldPanel(
@@ -252,6 +266,13 @@ class CMIP6DataFeed(DataFeed, TimeStampedModel):
                 FieldPanel("east"),
             ],
             heading="Spatial subset — custom bounding box (optional, overrides country)",
+        ),
+        MultiFieldPanel(
+            [
+                FieldPanel("cds_url"),
+                FieldPanel("cds_key", widget=forms.PasswordInput(render_value=True)),
+            ],
+            heading="CDS credentials",
         ),
         # Not shown for now.
         # MultiFieldPanel(
@@ -342,4 +363,7 @@ class CMIP6DataFeed(DataFeed, TimeStampedModel):
         return {
             "area": self.area,
             "bias_adjustment": self.bias_adjustment,
+            # cds_key is required; cds_url falls back to the default when blank.
+            "cds_url": self.cds_url or DEFAULT_CDS_URL,
+            "cds_key": self.cds_key,
         }
