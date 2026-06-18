@@ -148,8 +148,8 @@ def _build_collections() -> dict:
                 var = {
                     "key": v.code,
                     "name": v.label,
-                    "units": v.units,
-                    "source": v.code,  # post-processing renames the in-file var to this
+                    "source_units": v.units,
+                    "source_variable": v.code,  # post-processing renames the in-file var to this
                 }
                 if v.code in _VALUE_RANGES:
                     var["value_range"] = _VALUE_RANGES[v.code]
