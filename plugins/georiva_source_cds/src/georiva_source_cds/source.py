@@ -30,6 +30,7 @@ zip/ensemble post-processing are reused unchanged.
 
 from __future__ import annotations
 
+import functools
 import logging
 import time
 import zipfile
@@ -157,6 +158,16 @@ class CDSDataSource(BaseDataSource):
 
     def __init__(self, config: dict, fetch_strategy=CDSFetchStrategy):
         super().__init__(config, fetch_strategy)
+        # The Loader instantiates the fetch strategy bare (no config), so bind
+        # the feed-level CDS credentials here. The feed requires cds_key and
+        # supplies a default cds_url, so both are normally present.
+        self.fetch_strategy = functools.partial(
+            fetch_strategy,
+            {
+                "cds_url": config.get("cds_url"),
+                "cds_key": config.get("cds_key"),
+            },
+        )
 
     @property
     def source_type(self) -> DataSourceType:
