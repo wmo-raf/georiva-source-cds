@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "georiva-source-cds"
+version = "0.0.1"
+description = "GeoRiva plugin for Copernicus CDS data (CMIP6 C3S Atlas, extensible)."
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "WMO RAF" }]
+classifiers = []
+# NOTE: `georiva` (the core) is intentionally NOT listed here. It is provided by
+# the runtime environment — either the GeoRiva Docker image (where core is
+# installed) or, for local development, the uv workspace where core is a sibling
+# member installed into the same virtualenv. This keeps the plugin installable
+# with a plain `pip install` (core is not published to PyPI) and lets the
+# workspace resolve core from the local editable checkout.
+dependencies = [
+    "cdsapi>=0.7.0",
+    "xarray>=2024.0.0",
+    "netcdf4>=1.6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/wmo-raf/georiva-source-cds"
+
+[dependency-groups]
+dev = ["flake8==7.0.0"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+georiva_source_cds = ["atlas_data/*.json"]
+
+[tool.black]
+exclude = '''
+/(
+  | migrations
+  | generated
+)/
+'''
