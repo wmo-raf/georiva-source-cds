@@ -355,8 +355,8 @@ class CMIP6DataFeed(DataFeed, TimeStampedModel):
         return {"country": "KE", "bias_adjustment": "none"}
     
     @property
-    def data_source_cls(self):
-        from .source import CMIP6DataSource
+    def data_source_cls(self, source=None):
+        from ..source import CMIP6DataSource
         return CMIP6DataSource
     
     def get_loader_config(self) -> dict:
@@ -367,3 +367,4 @@ class CMIP6DataFeed(DataFeed, TimeStampedModel):
             "cds_url": self.cds_url or DEFAULT_CDS_URL,
             "cds_key": self.cds_key,
         }
+

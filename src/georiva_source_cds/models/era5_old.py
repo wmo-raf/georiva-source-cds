@@ -1,0 +1,184 @@
+"""
+DataFeed for georiva-source-era5.
+
+A `DataFeed` is the operator-facing model (registered as a Wagtail snippet).
+GeoRiva auto-discovers every `DataFeed` subclass and builds its admin form and
+setup wizard — you do NOT register anything in apps.py.
+
+The plugin contract a DataFeed must satisfy:
+  * get_collection_definitions() — which collections and variables this plugin
+    can create (declared below as the COLLECTIONS dict).
+  * get_catalog_defaults() — pre-fills the wizard's catalog step.
+  * data_source_cls — the BaseDataSource (source.py) that fetches the data.
+  * get_loader_config() — feed-wide settings merged into the source's config.
+
+Optionally, a feed can declare **derived products** — layers computed from its
+collections by a registered recipe (anomaly, climatology, promotion, …):
+  * get_derived_products() — the list of DerivedProductDefinitions this feed
+    offers (ADR-0008/0009). It is an *instance* method (a product's inputs bind
+    to this feed's actual collections). See the commented skeleton at the bottom
+    of the DataFeed below, and docs/plugins/derived-products.md for the full
+    contract. In the chain DAG, products are edges and collections are nodes.
+"""
+
+from django import forms
+from django.db import models
+from django_extensions.db.models import TimeStampedModel
+from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.snippets.models import register_snippet
+from wagtail.admin.forms import WagtailAdminModelForm
+
+from georiva.sources.collection_definitions import CollectionDefinition, parse_collection_defs
+from georiva.sources.models import DataFeed
+
+# ---------------------------------------------------------------------------
+# Collections this plugin can create — the canonical spec for the plugin.
+# One entry per collection; each lists the variables it exposes.
+#
+#   time_resolution : one of sub_hourly, hourly, 3hourly, 6hourly, 12hourly,
+#                     daily, pentadal, dekadal, monthly, seasonal, annual, ...
+#   variables[].source : how the variable is located in the raw file, e.g. a
+#                     GeoTIFF band name ("band_1"), or a GRIB short-name / level
+#                     dict. See the georiva-source-* reference plugins.
+# ---------------------------------------------------------------------------
+COLLECTIONS = {
+    "era5_hourly_single_levels": {
+        "name": "ERA5 hourly data on single levels",
+        "time_resolution": "hourly",
+        # "default_interval_minutes": 1440,   # pre-fills the collection's schedule
+        "variables": [
+            {
+                "key": "2m_temperature",
+                "name": "2m Temperature",
+                "source_units": "K",          # raw unit of the source data (required)
+                "output_units": "degC",        # optional; exposed unit if converting
+                "source_variable": "2m_temperature",
+                # "value_range": (0.0, 100.0),
+            },
+            {
+                "key": "sea_surface_temperature",
+                "name": "Sea Surface Temperature",
+                "source_units": "K",          # raw unit of the source data (required)
+                "output_units": "degC",        # optional; exposed unit if converting
+                "source_variable": "sea_surface_temperature",
+                # "value_range": (0.0, 100.0),
+            },
+        ],
+        "groups": [   # optional UX grouping of variables in the wizard
+            {"key": "temp-pressure",
+             "name": "Temperature and pressure",
+             "variable_keys": ["2m_temperature", "sea_surface_temperature"]},
+        ],
+    },
+}
+
+
+class ERA5DataFeedForm(WagtailAdminModelForm):
+    api_key = forms.CharField(required=True)
+
+@register_snippet
+class GeorivaSourceEra5DataFeed(DataFeed, TimeStampedModel):
+    """Operator configuration for a georiva-source-era5 acquisition."""
+
+    base_form_class = ERA5DataFeedForm
+
+    # Add feed-wide configuration fields here (credentials, timeouts, bbox...).
+    # Example:
+    # head_timeout = models.IntegerField(
+    #     default=20,
+    #     help_text="HTTP timeout (seconds) for source requests.",
+    # )
+
+    panels = [
+        *DataFeed.base_panels,
+        # MultiFieldPanel([FieldPanel("head_timeout")], heading="Advanced"),
+    ]
+
+    class Meta:
+        verbose_name = "georiva-source-era5 Data Feed"
+
+    # -- plugin contract ----------------------------------------------------
+
+    @classmethod
+    def get_collection_definitions(cls) -> list[CollectionDefinition]:
+        return parse_collection_defs(COLLECTIONS)
+
+    @classmethod
+    def get_catalog_defaults(cls) -> dict:
+        return {
+            "name": "ERA5 Datafeed",
+            "file_format": "netcdf",   # geotiff | grib2 | netcdf
+            "description": "A GeoRiva source plugin for downloading and ingesting raster data.",
+        }
+
+    @property
+    def data_source_cls(self):
+        from .source import GeorivaSourceEra5DataSource
+        return GeorivaSourceEra5DataSource
+
+    def get_loader_config(self) -> dict:
+        """Feed-wide settings merged into the data source's config dict."""
+        return {}
+
+    # -- derived products (optional) ----------------------------------------
+    #
+    # Uncomment and adapt to declare layers computed from this feed's
+    # collections by a registered recipe. Delete this block if the plugin only
+    # ingests raw data. Full guide: docs/plugins/derived-products.md.
+    #
+    # get_derived_products() is an *instance* method: a product's InputRef /
+    # OutputRef `collection` is a FEED-LOCAL KEY (ADR-0010) — one of this feed's
+    # CollectionDefinition keys (a raw collection) or an output key of one of its
+    # own products (a sibling output), NOT a global catalog slug. At enable time
+    # each key is resolved once to a Collection and pinned, so a later slug rename
+    # never breaks routing/dispatch/resolution. Return one DerivedProductDefinition
+    # per product the feed offers.
+    #
+    # def get_derived_products(self):
+    #     from georiva.core.derived_products import (
+    #         ConfigField, DerivedProductDefinition, InputRef, OutputRef,
+    #     )
+    #     return [
+    #         DerivedProductDefinition(
+    #             key="example-anomaly",          # unique per feed; the origin/config key
+    #             recipe_type="my-anomaly",       # a recipe registered via @recipe_registry.register
+    #             label="Example anomaly",        # shown in the wizard + chain panel
+    #             description="Departure from the climatological normal.",
+    #             # Operator options -> the wizard form + validation. Types:
+    #             # str | int | float | bool | choice (choice requires `choices`).
+    #             config_schema=(
+    #                 ConfigField(key="min_years", type="int", default=30),
+    #                 ConfigField(key="quantity", type="choice",
+    #                             choices=("anomaly", "value"), default="anomaly"),
+    #             ),
+    #             # Declared inputs (not buried in the recipe). `collection` is a
+    #             # feed-local key (a CollectionDefinition key or a sibling output
+    #             # key), not a catalog slug. tier is "staging" (loader-fed,
+    #             # pre-publish) or "published". A required input at the *published*
+    #             # tier naming another product's output key creates a dependency
+    #             # edge (anomaly -> climatology).
+    #             inputs=(
+    #                 InputRef(role="value", collection="example-collection", tier="staging"),
+    #                 InputRef(role="baseline", collection="example-collection-climatology",
+    #                          tier="published", required=True),
+    #             ),
+    #             # Output collections this product materialises. title/description/
+    #             # visibility drive the catalog Collection created on enable
+    #             # (get-or-create only, so operator renames survive). visibility is
+    #             # "public" (served) or "internal" (a derivation intermediate).
+    #             outputs=(
+    #                 OutputRef(role="anomaly", collection="example-collection-anomaly",
+    #                           title="Example anomaly",
+    #                           description="Absolute departure from the normal.",
+    #                           visibility="public"),
+    #             ),
+    #             # "event" (fire on each arriving input), "scheduled" (interval), or
+    #             # "manual" (operator-triggered only).
+    #             trigger_mode="event",
+    #             # Pre-ticked in the wizard's opt-in step (default True).
+    #             default_enabled=True,
+    #             # Extra non-data-flow dependencies the tier rule can't infer
+    #             # (usually unnecessary — a published-tier input gives the edge).
+    #             depends_on=(),
+    #         ),
+    #     ]
