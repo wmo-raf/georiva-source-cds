@@ -382,7 +382,8 @@ class ERA5DataSource(CDSDataSource):
     type = "cds-era5"
     label = "CDS ERA5"
     DATASET = "reanalysis-era5-single-levels-monthly-means"
-    default_start_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    # Set default start to now -5 years. Should not be used if the corresponding Field is displayed in the form
+    default_start_date = datetime(datetime.now().year - 5, 1, 1, tzinfo=timezone.utc)
 
     def __init__(self, config: dict, fetch_strategy=CDSFetchStrategy):
         super().__init__(config, fetch_strategy)
@@ -391,7 +392,6 @@ class ERA5DataSource(CDSDataSource):
         self.requested_variables = config.get("variables", [])
         if "default_start_date" in config.keys():
             self.default_start_date = config.get("default_start_date")
-            # TODO: add a Field to provide the default start date
 
     def get_default_start_date(self, *, collection=None) -> datetime:
         default_start_date = self.default_start_date

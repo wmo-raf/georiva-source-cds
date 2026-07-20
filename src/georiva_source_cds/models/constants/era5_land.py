@@ -1,0 +1,115 @@
+collection_era5_land_monthly = {
+    "name": "ERA5-Land monthly averaged data from 1950 to present",
+    "time_resolution": "monthly",
+    "variables": [
+        # Temperature
+        {"key": "2t",    "name": "2m Temperature",             "source_units": "K",           "output_units": "degC", "source_variable": "2m_temperature"},
+        {"key": "2d",    "name": "2m Dewpoint Temperature",    "source_units": "K",           "output_units": "degC", "source_variable": "2m_dewpoint_temperature"},
+        {"key": "skt",   "name": "Skin Temperature",           "source_units": "K",           "output_units": "degC", "source_variable": "skin_temperature"},
+        *[{"key": f"stl{i}", "name": f"Soil Temperature Level {i}", "source_units": "K", "output_units": "degC", "source_variable": f"soil_temperature_level_{i}"} for i in range(1, 5)],
+        # Lakes
+        {"key": "lblt",  "name": "Lake Bottom Temperature",    "source_units": "K",           "output_units": "degC", "source_variable": "lake_bottom_temperature"},
+        {"key": "licd",  "name": "Lake Ice Depth",             "source_units": "m",                                  "source_variable": "lake_ice_depth"},
+        {"key": "lict",  "name": "Lake Ice Temperature",       "source_units": "K",           "output_units": "degC", "source_variable": "lake_ice_temperature"},
+        {"key": "lmld",  "name": "Lake Mix-Layer Depth",       "source_units": "m",                                  "source_variable": "lake_mix_layer_depth"},
+        {"key": "lmlt",  "name": "Lake Mix-Layer Temperature", "source_units": "K",           "output_units": "degC", "source_variable": "lake_mix_layer_temperature"},
+        {"key": "lshf",  "name": "Lake Shape Factor",          "source_units": "~",                                  "source_variable": "lake_shape_factor"},
+        {"key": "ltlt",  "name": "Lake Total Layer Temperature","source_units": "K",           "output_units": "degC", "source_variable": "lake_total_layer_temperature"},
+        # Snow
+        {"key": "asn",   "name": "Snow Albedo",                "source_units": "(0 - 1)",                            "source_variable": "snow_albedo"},
+        {"key": "snowc", "name": "Snow Cover",                 "source_units": "%",                                  "source_variable": "snow_cover"},
+        {"key": "rsn",   "name": "Snow Density",               "source_units": "kg m**-3",                           "source_variable": "snow_density"},
+        {"key": "sd",    "name": "Snow Depth Water Equivalent","source_units": "m",                                  "source_variable": "snow_depth_water_equivalent"},
+        {"key": "sf",    "name": "Snowfall",                   "source_units": "m",                                  "source_variable": "snowfall"},
+        {"key": "smlt",  "name": "Snowmelt",                   "source_units": "m",                                  "source_variable": "snowmelt"},
+        {"key": "tsn",   "name": "Temperature of Snow Layer",  "source_units": "K",           "output_units": "degC", "source_variable": "temperature_of_snow_layer"},
+        # Soil Water
+        {"key": "src",   "name": "Skin Reservoir Content",     "source_units": "m",                                  "source_variable": "skin_reservoir_content"},
+        *[{"key": f"swvl{i}", "name": f"Volumetric Soil Water Layer {i}", "source_units": "m**3 m**-3", "source_variable": f"volumetric_soil_water_layer_{i}"} for i in range(1, 5)],
+        # Radiation and Heat
+        {"key": "fal",   "name": "Forecast Albedo",                       "source_units": "(0 - 1)",  "source_variable": "forecast_albedo"},
+        {"key": "slhf",  "name": "Surface Latent Heat Flux",              "source_units": "J m**-2",  "source_variable": "surface_latent_heat_flux"},
+        {"key": "ssr",   "name": "Surface Net Solar Radiation",           "source_units": "J m**-2",  "source_variable": "surface_net_solar_radiation"},
+        {"key": "str",   "name": "Surface Net Thermal Radiation",         "source_units": "J m**-2",  "source_variable": "surface_net_thermal_radiation"},
+        {"key": "sshf",  "name": "Surface Sensible Heat Flux",            "source_units": "J m**-2",  "source_variable": "surface_sensible_heat_flux"},
+        {"key": "ssrd",  "name": "Surface Solar Radiation Downwards",     "source_units": "J m**-2",  "source_variable": "surface_solar_radiation_downwards"},
+        {"key": "strd",  "name": "Surface Thermal Radiation Downwards",   "source_units": "J m**-2",  "source_variable": "surface_thermal_radiation_downwards"},
+        # Evaporation and Runoff
+        {"key": "evabs", "name": "Evaporation from Bare Soil",                                "source_units": "m",  "source_variable": "evaporation_from_bare_soil"},
+        {"key": "evaow", "name": "Evaporation from Open Water Surfaces Excluding Oceans",     "source_units": "m",  "source_variable": "evaporation_from_open_water_surfaces_excluding_oceans"},
+        {"key": "evatc", "name": "Evaporation from the Top of Canopy",                        "source_units": "m",  "source_variable": "evaporation_from_the_top_of_canopy"},
+        {"key": "evavt", "name": "Evaporation from Vegetation Transpiration",                 "source_units": "m",  "source_variable": "evaporation_from_vegetation_transpiration"},
+        {"key": "pev",   "name": "Potential Evaporation",                                     "source_units": "m",  "source_variable": "potential_evaporation"},
+        {"key": "ro",    "name": "Runoff",                                                     "source_units": "m",  "source_variable": "runoff"},
+        {"key": "es",    "name": "Snow Evaporation",                                           "source_units": "m",  "source_variable": "snow_evaporation"},
+        {"key": "ssro",  "name": "Sub-Surface Runoff",                                         "source_units": "m",  "source_variable": "sub_surface_runoff"},
+        {"key": "sro",   "name": "Surface Runoff",                                             "source_units": "m",  "source_variable": "surface_runoff"},
+        {"key": "e",     "name": "Total Evaporation",                                          "source_units": "m",  "source_variable": "total_evaporation"},
+        # Wind, Pressure and Precipitation
+        {"key": "10u",   "name": "10m U-Component of Wind",    "source_units": "m s**-1",                            "source_variable": "10m_u_component_of_wind"},
+        {"key": "10v",   "name": "10m V-Component of Wind",    "source_units": "m s**-1",                            "source_variable": "10m_v_component_of_wind"},
+        {"key": "sp",    "name": "Surface Pressure",           "source_units": "Pa",          "output_units": "hPa", "source_variable": "surface_pressure"},
+        {"key": "tp",    "name": "Total Precipitation",        "source_units": "m",                                  "source_variable": "total_precipitation"},
+        # Vegetation
+        {"key": "lai_hv","name": "Leaf Area Index, High Vegetation", "source_units": "m**2 m**-2",                   "source_variable": "leaf_area_index_high_vegetation"},
+        {"key": "lai_lv","name": "Leaf Area Index, Low Vegetation",  "source_units": "m**2 m**-2",                   "source_variable": "leaf_area_index_low_vegetation"},
+        # Invariant
+        {"key": "cvh",   "name": "High Vegetation Cover",      "source_units": "(0 - 1)",                            "source_variable": "high_vegetation_cover"},
+        {"key": "glm",   "name": "Glacier Mask",               "source_units": "(0 - 1)",                            "source_variable": "glacier_mask"},
+        {"key": "cl",    "name": "Lake Cover",                 "source_units": "(0 - 1)",                            "source_variable": "lake_cover"},
+        {"key": "cvl",   "name": "Low Vegetation Cover",       "source_units": "(0 - 1)",                            "source_variable": "low_vegetation_cover"},
+        {"key": "dl",    "name": "Lake Total Depth",           "source_units": "m",                                  "source_variable": "lake_total_depth"},
+        {"key": "z",     "name": "Geopotential",               "source_units": "m**2 s**-2",                         "source_variable": "geopotential"},
+        {"key": "lsm",   "name": "Land-Sea Mask",              "source_units": "(0 - 1)",                            "source_variable": "land_sea_mask"},
+        {"key": "slt",   "name": "Soil Type",                  "source_units": "~",                                  "source_variable": "soil_type"},
+        {"key": "tvh",   "name": "Type of High Vegetation",    "source_units": "~",                                  "source_variable": "type_of_high_vegetation"},
+        {"key": "tvl",   "name": "Type of Low Vegetation",     "source_units": "~",                                  "source_variable": "type_of_low_vegetation"},
+    ],
+    "groups": [
+        {
+            "key": "temperature",
+            "name": "Temperature",
+            "variable_keys": ["2t", "2d", "skt", "stl1", "stl2", "stl3", "stl4"],
+        },
+        {
+            "key": "lakes",
+            "name": "Lakes",
+            "variable_keys": ["lblt", "licd", "lict", "lmld", "lmlt", "lshf", "ltlt"],
+        },
+        {
+            "key": "snow",
+            "name": "Snow",
+            "variable_keys": ["asn", "snowc", "rsn", "sd", "sf", "smlt", "tsn"],
+        },
+        {
+            "key": "soil-water",
+            "name": "Soil Water",
+            "variable_keys": ["src", "swvl1", "swvl2", "swvl3", "swvl4"],
+        },
+        {
+            "key": "radiation-heat",
+            "name": "Radiation and Heat",
+            "variable_keys": ["fal", "slhf", "ssr", "str", "sshf", "ssrd", "strd"],
+        },
+        {
+            "key": "evaporation-runoff",
+            "name": "Evaporation and Runoff",
+            "variable_keys": ["evabs", "evaow", "evatc", "evavt", "pev", "ro", "es", "ssro", "sro", "e"],
+        },
+        {
+            "key": "wind-pressure-precipitation",
+            "name": "Wind, Pressure and Precipitation",
+            "variable_keys": ["10u", "10v", "sp", "tp"],
+        },
+        {
+            "key": "vegetation",
+            "name": "Vegetation",
+            "variable_keys": ["lai_hv", "lai_lv"],
+        },
+        {
+            "key": "invariant",
+            "name": "Invariant",
+            "variable_keys": ["cvh", "glm", "cl", "cvl", "dl", "z", "lsm", "slt", "tvh", "tvl"],
+        },
+    ],
+}
