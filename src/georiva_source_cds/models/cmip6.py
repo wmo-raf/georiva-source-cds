@@ -356,7 +356,7 @@ class CMIP6DataFeed(DataFeed, TimeStampedModel):
     
     @property
     def data_source_cls(self, source=None):
-        from ..source import CMIP6DataSource
+        from ..sources import CMIP6DataSource
         return CMIP6DataSource
     
     def get_loader_config(self) -> dict:

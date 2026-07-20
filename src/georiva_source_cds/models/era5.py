@@ -103,7 +103,7 @@ class ERA5DataFeed(CMIP6DataFeed):
 
     @property
     def data_source_cls(self, source=None):
-        from ..source import ERA5DataSource
+        from ..sources import ERA5DataSource
         return ERA5DataSource
     #
     # def get_loader_config(self) -> dict:
