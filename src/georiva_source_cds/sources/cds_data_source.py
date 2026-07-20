@@ -5,9 +5,9 @@ import functools
 import logging
 import time
 import zipfile
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
-from typing import Iterator, Optional, Tuple
+from typing import Optional, Tuple
 
 from georiva.sources.fetch import FileRequest
 from georiva.sources.fetch.base import BaseFetchStrategy, FetchMode, FetchResult

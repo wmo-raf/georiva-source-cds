@@ -1,54 +1,44 @@
 
+# =============================================================================
+# ERA5 (CDS, ECMWF reanalysis) data source
+# =============================================================================
+
 from __future__ import annotations
 
-import functools
 import logging
-import time
-import zipfile
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Iterator, Optional, Tuple
+from typing import Iterator, Optional
 
 from georiva.sources.fetch import FileRequest
-from georiva.sources.fetch.base import BaseFetchStrategy, FetchMode, FetchResult
-from georiva.sources.source import BaseDataSource, DataSourceType
 from . import CDSDataSource, CDSFetchStrategy
 
 logger = logging.getLogger(__name__)
 
 class ERA5DataSource(CDSDataSource):
     """
-    ERA5 monthly/annual climate indices.
-
-    Static data: ignores the (start, end) time window the Loader passes and
-    instead emits one request per requested variable for a single experiment.
+    ERA5 monthly climate indices.
+    ERA5 also provides hourly datasets, but they are not implemented yet.
     """
 
     type = "cds-era5"
     label = "CDS ERA5"
-    DATASET = "reanalysis-era5-single-levels-monthly-means"
+    DATASET = "era5-monthly"
     # Set default start to now -5 years. Should not be used if the corresponding Field is displayed in the form
-    default_start_date = datetime(datetime.now().year - 5, 1, 1, tzinfo=timezone.utc)
+    default_start_date: datetime = datetime(datetime.now().year - 5, 1, 1, tzinfo=timezone.utc)
 
     def __init__(self, config: dict, fetch_strategy=CDSFetchStrategy):
         super().__init__(config, fetch_strategy)
         # area as [north, west, south, east] (CDS order); built by the feed.
         self.area = config.get("area")
         self.requested_variables = config.get("variables", [])
+        self.product_type = config.get("product_type", "monthly_averaged_reanalysis")
         if "default_start_date" in config.keys():
-            self.default_start_date = config.get("default_start_date")
+            dt = config.get("default_start_date")
+            if isinstance(dt, datetime):
+                self.default_start_date = dt
 
     def get_default_start_date(self, *, collection=None) -> datetime:
-        default_start_date = self.default_start_date
-
-        if default_start_date:
-            return datetime.combine(default_start_date, datetime.min.time())
-
-        # 2 months before today
-        now = datetime.now(timezone.utc)
-        default_start_date = now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=60)
-
-        return default_start_date
+        return self.default_start_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
     @property
     def name(self) -> str:
@@ -71,6 +61,7 @@ class ERA5DataSource(CDSDataSource):
         Try to discover latest file by probing backwards.
         Prefer pentadal if enabled, fall back to monthly.
         """
+        # TODO: implement something
         return datetime(year=2026, month=6, day=1, tzinfo=timezone.utc)
 
     def generate_requests(

@@ -5,17 +5,11 @@
 
 from __future__ import annotations
 
-import functools
 import logging
-import time
-import zipfile
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Iterator, Optional, Tuple
+from typing import Iterator, Optional
 
 from georiva.sources.fetch import FileRequest
-from georiva.sources.fetch.base import BaseFetchStrategy, FetchMode, FetchResult
-from georiva.sources.source import BaseDataSource, DataSourceType
 from . import CDSFetchStrategy, CDSDataSource
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 """
 Copernicus CDS data sources for GeoRiva.
 
-This package ships two reusable pieces plus one concrete dataset:
+This package ships two reusable pieces plus two concrete datasets:
 
   CDSFetchStrategy
       A fetch strategy that wraps the official `cdsapi` client. `cdsapi`
