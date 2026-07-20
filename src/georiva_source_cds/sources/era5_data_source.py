@@ -5,8 +5,9 @@
 
 from __future__ import annotations
 
+import cdsapi
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Iterator, Optional
 
 from georiva.sources.fetch import FileRequest
@@ -25,6 +26,7 @@ class ERA5DataSource(CDSDataSource):
     DATASET = "era5-monthly"
     # Set default start to now -5 years. Should not be used if the corresponding Field is displayed in the form
     default_start_date: datetime = datetime(datetime.now().year - 5, 1, 1, tzinfo=timezone.utc)
+    MAX_LOOKBACK_MONTHS = 5
 
     def __init__(self, config: dict, fetch_strategy=CDSFetchStrategy):
         super().__init__(config, fetch_strategy)
@@ -61,8 +63,25 @@ class ERA5DataSource(CDSDataSource):
         Try to discover latest file by probing backwards.
         Prefer pentadal if enabled, fall back to monthly.
         """
-        # TODO: implement something
-        return datetime(year=2026, month=6, day=1, tzinfo=timezone.utc)
+        current_month = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        for i in range(self.MAX_LOOKBACK_MONTHS):
+            dt = current_month - timedelta(days=i*31)
+            dataset = "reanalysis-era5-single-levels-monthly-means"
+            request = {
+                "product_type": ["monthly_averaged_reanalysis"],
+                "variable": ["mean_sea_level_pressure"],
+                "year": [dt.year],
+                "month": [dt.month],
+                "time": ["00:00"],
+                "data_format": "netcdf",
+                "download_format": "zip"
+            }
+            client = cdsapi.Client()
+            response = client.retrieve(dataset, request)
+            if response.status_code == 200:
+                return datetime(year=dt.year, month=dt.month, day=1, tzinfo=timezone.utc)
+        return None
 
     def generate_requests(
             self,
