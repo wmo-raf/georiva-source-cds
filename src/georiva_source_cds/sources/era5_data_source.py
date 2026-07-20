@@ -92,6 +92,7 @@ class ERA5DataSource(CDSDataSource):
             for dt in self._iter_months(start_time, end_time):
                 logger.info("ERA5 request: %s %s", code, dt)
                 cds_request = {
+                    "product_type": ["monthly_averaged_reanalysis"],
                     "variable": code,
                     "data_format": "netcdf",
                     "download_format": "zip",
