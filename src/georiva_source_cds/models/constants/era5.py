@@ -15,12 +15,10 @@ PERIOD_CHOICES = [
 #                     dict. See the georiva-source-* reference plugins.
 # ---------------------------------------------------------------------------
 
-from .era5_single_levels import collection_era5_monthly_single_levels
+from .era5_single_levels import collection_era5_single_levels_monthly
 from .era5_land import collection_era5_land_monthly
 from .era5_pressure_levels import collection_era5_pressure_levels_monthly
 
 COLLECTIONS = {
-    "era5_monthly_single_levels": collection_era5_monthly_single_levels,
-    "era5_land_monthly": collection_era5_land_monthly,
-    "era5_pl_monthly": collection_era5_pressure_levels_monthly,
+    ds["dataset_id"]: ds for ds in [collection_era5_single_levels_monthly, collection_era5_land_monthly, collection_era5_pressure_levels_monthly]
 }

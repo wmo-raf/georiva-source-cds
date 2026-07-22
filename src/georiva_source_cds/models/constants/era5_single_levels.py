@@ -1,5 +1,6 @@
-collection_era5_monthly_single_levels = {
+collection_era5_single_levels_monthly = {
     "name": "ERA5 monthly averaged data on single levels from 1940 to present",
+    "dataset_id": "reanalysis-era5-single-levels-monthly-means",
     "time_resolution": "monthly",
     # "default_interval_minutes": 1440,   # pre-fills the collection's schedule
     "variables": [

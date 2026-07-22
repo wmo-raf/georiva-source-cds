@@ -1,5 +1,6 @@
 collection_era5_land_monthly = {
     "name": "ERA5-Land monthly averaged data from 1950 to present",
+    "dataset_id": "reanalysis-era5-land-monthly-means",
     "time_resolution": "monthly",
     "variables": [
         # Temperature

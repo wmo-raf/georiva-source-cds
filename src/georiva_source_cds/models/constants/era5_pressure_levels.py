@@ -1,3 +1,9 @@
+# ERA5 Pressure Levels "constants".
+# This dataset features a higher-than-expected cardinality, since it ranges accross
+# - pressure levels
+# - variables
+# To be displayed in the UI, pressure levels and variables are combined
+
 _PRESSURE_LEVELS =  [
         "1", "2", "3",
         "5", "7", "10",
@@ -14,33 +20,7 @@ _PRESSURE_LEVELS =  [
         "1000"
     ]
 
-def _pl_source(name, level):
-    """Source dict for a pressure level."""
-    return {
-        "name": name,
-        "level": {
-            "type": "pressure",
-            "value": level,
-            "dimension": "isobaricInhPa",
-            "unit": "hPa"
-        }
-    }
-
-def _pl_vars(base_key, base_name, source_units, value_range=None, output_units=None):
-    """Generate one variable dict per pressure level."""
-    v = [
-        {
-            "key": f"{base_key}_{lv}",
-            "name": f"{base_name} at {lv} hPa",
-            "source_units": source_units,
-            "source_variable": _pl_source(base_key, lv),
-            **({"output_units": output_units} if output_units else {}),
-            **({"value_range": value_range} if value_range else {}),
-        }
-        for lv in _PRESSURE_LEVELS
-    ]
-    return v
-
+# Unformatted variables list
 _PL_VARS = [
     ("d",    "Divergence",                       "s**-1",              None,       None,       "divergence"),
     ("cc",   "Fraction of Cloud Cover",          "(0 - 1)",            None,       None,       "fraction_of_cloud_cover"),
@@ -60,8 +40,24 @@ _PL_VARS = [
     ("vo",   "Vorticity",                        "s**-1",              None,       None,       "vorticity"),
 ]
 
+def _pl_vars(base_key, base_name, source_units, var_longname, value_range=None, output_units=None):
+    """Generate one variable dict per pressure level."""
+    v = [
+        {
+            "key": f"{base_key}_{lv}",
+            "name": f"{base_name} at {lv} hPa",
+            "source_units": source_units,
+            "source_variable": var_longname,
+            "pressure_level": lv,
+            **({"output_units": output_units} if output_units else {}),
+        }
+        for lv in _PRESSURE_LEVELS
+    ]
+    return v
+
 collection_era5_pressure_levels_monthly = {
     "name": "ERA5 monthly averaged data on pressure levels from 1940 to present",
+    "dataset_id": "reanalysis-era5-pressure-levels-monthly-means",
     "time_resolution": "monthly",
     "variables": [
         # dynamically added below
@@ -76,9 +72,10 @@ collection_era5_pressure_levels_monthly = {
     ],
 }
 
+# Generate the variables list
 variables = []
-for base_key, base_name, source_units, value_range, output_units, _ in _PL_VARS:
-    v = _pl_vars(base_key, base_name, source_units, value_range, output_units)
+for base_key, base_name, source_units, value_range, output_units, var_longname in _PL_VARS:
+    v = _pl_vars(base_key, base_name, source_units, var_longname, value_range, output_units)
     variables += v
 collection_era5_pressure_levels_monthly["variables"] = variables
 
