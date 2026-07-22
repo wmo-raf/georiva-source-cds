@@ -122,7 +122,7 @@ class CDSDataSource(BaseDataSource):
     The download -> single-NetCDF post-processing is handled here.
     """
 
-    DATASET: str = ""  # CDS dataset name, e.g. "multi-origin-c3s-atlas"
+    DEFAULT_DATASET: str = ""  # CDS dataset name, e.g. "multi-origin-c3s-atlas"
 
     # Names we treat as the ensemble dimension to collapse (mean) before raster.
     MEMBER_DIMS = ("member", "realization", "model", "gcm")

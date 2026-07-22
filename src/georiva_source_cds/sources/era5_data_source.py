@@ -23,7 +23,9 @@ class ERA5DataSource(CDSDataSource):
 
     type = "cds-era5"
     label = "CDS ERA5"
-    DATASET = "era5-monthly"
+    # TODO: determine dynamically for each variable being requested. Can be any of the 3 collections
+    # Maybe georiva should pass the collection id to generate_requests function
+    DEFAULT_DATASET = "reanalysis-era5-single-levels-monthly-means"
     # Set default start to now -5 years. Should not be used if the corresponding Field is displayed in the form
     default_start_date: datetime = datetime(datetime.now().year - 5, 1, 1, tzinfo=timezone.utc)
     MAX_LOOKBACK_MONTHS = 5
@@ -35,6 +37,7 @@ class ERA5DataSource(CDSDataSource):
         self.requested_variables = config.get("variables", [])
         self.product_type = config.get("product_type", "monthly_averaged_reanalysis")
         if "default_start_date" in config.keys():
+            logger.info(f"ERA5: default_start_date: {config.get('default_start_date')}")
             dt = config.get("default_start_date")
             if isinstance(dt, datetime):
                 self.default_start_date = dt
@@ -60,8 +63,8 @@ class ERA5DataSource(CDSDataSource):
 
     def get_latest_available(self) -> Optional[datetime]:
         """
-        Try to discover latest file by probing backwards.
-        Prefer pentadal if enabled, fall back to monthly.
+        Try to discover most recent dataset available online by probing backwards.
+        The resource fetched for this exploration is hardcoded.
         """
         current_month = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
@@ -83,6 +86,22 @@ class ERA5DataSource(CDSDataSource):
                 return datetime(year=dt.year, month=dt.month, day=1, tzinfo=timezone.utc)
         return None
 
+    def generate_requests_for_collection(
+            self,
+            collection,
+            **kwargs,
+    ) -> Iterator[FileRequest]:
+        start_time, end_time = self.get_time_window(collection=collection)
+        data_variables = collection.source_variables_list()
+        logger.info(f"############ERA5 collection: {collection.to_json()}")
+        return self.generate_requests(
+            start_time=start_time,
+            end_time=end_time,
+            variables=data_variables,
+            collection_id=collection.slug,
+            **kwargs,
+        )
+
     def generate_requests(
             self,
             start_time: datetime,
@@ -94,27 +113,33 @@ class ERA5DataSource(CDSDataSource):
         if not variables:
             self.logger.warning(f"{self.label}: no variables requested; nothing to fetch")
             return
+        logger.info(f"&&&&&&&&&&&&&& collectionid: {kwargs.get('collection_id')}")
+        ds = kwargs.get("collection_id", self.DEFAULT_DATASET)
 
         start_time = _as_utc(start_time)
         end_time = _as_utc(end_time)
-        logger.info("ERA5 request: %s %s", variables, (start_time, end_time))
+        logger.info("ERA5 request: %s %s %s", variables, (start_time, end_time), kwargs)
+        # TODO: extract and add the pressure-level var for pressure collection
         for code in variables:
             for dt in self._iter_months(start_time, end_time):
                 logger.info("ERA5 request: %s %s", code, dt)
                 cds_request = {
-                    "product_type": ["monthly_averaged_reanalysis"],
+                    "product_type": [self.product_type],
                     "variable": code,
                     "data_format": "netcdf",
+                    # "download_format": "unarchived",
                     "download_format": "zip",
                     "year": [dt.year],
                     "month": [dt.month],
                     "time": [dt.strftime("%H:%M")],
                 }
+                logger.info("&&&&&&&&&&ERA5 request: %s", cds_request)
+
                 if self.area:
                     cds_request["area"] = list(self.area)
 
                 ts = _ts_for_filename(dt)
-                identifier = f"{self.DATASET}_{code}_{ts}"
+                identifier = f"{ds}_{code}_{ts}"
 
                 yield FileRequest(
                     identifier=identifier,
@@ -122,7 +147,7 @@ class ERA5DataSource(CDSDataSource):
                     valid_time=dt,
                     reference_time=None,  # static / derived, not a forecast
                     params={
-                        "cds_dataset": self.DATASET,
+                        "cds_dataset": ds,
                         "cds_request": cds_request,
                         "variable_key": code,
                     },

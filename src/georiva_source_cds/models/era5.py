@@ -28,13 +28,14 @@ from django_extensions.db.models import TimeStampedModel
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.snippets.models import register_snippet
 from wagtail.admin.forms import WagtailAdminModelForm
-
+import logging
 from georiva.sources.collection_definitions import CollectionDefinition, parse_collection_defs
 from georiva.sources.models import DataFeedCollectionLink
 
 from . import CMIP6DataFeed
 from .constants.era5 import COLLECTIONS, PERIOD_CHOICES
 
+logger = logging.getLogger(__name__)
 
 class ERA5DataFeedCollectionLink(DataFeedCollectionLink):
     """Per-collection config for a ERA5 DataFeed."""
@@ -103,7 +104,7 @@ class ERA5DataFeed(CMIP6DataFeed):
 
     @property
     def data_source_cls(self, source=None):
-        from ..sources import ERA5DataSource
+        from ..sources.era5_data_source import ERA5DataSource
         return ERA5DataSource
     #
     # def get_loader_config(self) -> dict:
@@ -121,8 +122,9 @@ class ERA5DataFeed(CMIP6DataFeed):
     @classmethod
     def get_link_config_for_definition(cls, definition) -> dict:
         """Derive period from the definition key so it's never shown as an editable field."""
-        periods_list = zip(*PERIOD_CHOICES)[0]
-        for period in periods_list:
-            if period in definition.key:
-                return {'period': period}
+        # periods_list = zip(*PERIOD_CHOICES)[0]
+        for period in PERIOD_CHOICES:
+            if period[0] in definition.key:
+                return {'period': period[0]}
         return {}
+        return {'period': 'month'}

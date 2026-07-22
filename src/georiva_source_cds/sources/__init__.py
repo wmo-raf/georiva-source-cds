@@ -34,6 +34,6 @@ dataset name, and implement generate_requests(); the fetch strategy and the
 zip/ensemble post-processing are reused unchanged.
 """
 
-from cds_data_source import CDSFetchStrategy, CDSDataSource
-from cmip6_data_source import CMIP6DataSource
-from era5_data_source import ERA5DataSource
+from .cds_data_source import CDSFetchStrategy, CDSDataSource
+from .cmip6_data_source import CMIP6DataSource
+from .era5_data_source import ERA5DataSource
