@@ -13,6 +13,7 @@ from typing import Iterator, Optional
 
 from georiva.sources.fetch import FileRequest
 from . import CDSDataSource, CDSFetchStrategy
+from ..models.constants import era5 as era5_constants
 
 logger = logging.getLogger(__name__)
 
@@ -168,27 +169,30 @@ class ERA5DataSource(CDSDataSource):
         if not variables:
             self.logger.warning(f"{self.label}: no variables requested; nothing to fetch")
             return
-        logger.info(f"&&&&&&&&&&&&&& collectionid: {kwargs.get('collection_id')}")
+        logger.debug(f"&&&&&&&&&&&&&& collectionid: {kwargs.get('collection_id')}")
         ds = kwargs.get("collection_id", self.DEFAULT_DATASET)
 
         start_time = _as_utc(start_time)
         end_time = _as_utc(end_time)
-        logger.info("ERA5 request: %s %s %s", variables, (start_time, end_time), kwargs)
+        logger.debug("ERA5 request: %s %s %s", variables, (start_time, end_time), kwargs)
         desired_dates = [dt for dt in self._iter_months(start_time, end_time)]
-        logger.info(f"Desired dates: {desired_dates}")
+        logger.debug(f"Desired dates: {desired_dates}")
         years = set(dt.year for dt in desired_dates)
         months = set(dt.month for dt in desired_dates)
 
         # Extract and add the pressure-level var for pressure collection
         # If not relevant, pressure_levels=[] and will be skipped later
         pressure_levels = kwargs.get("pressure_levels", [])
-        logger.info(f" Gen requests pressure level is {pressure_levels}")
+        if pressure_levels:
+            logger.debug(f" Gen requests pressure level is {pressure_levels}")
+
         for dt in self._iter_months(start_time, end_time):
-            for code in variables:
-                logger.info("ERA5 atomic request: %s %s", code, dt)
+            for code in set(variables):
+                logger.debug("ERA5 atomic request: %s %s", code, dt)
                 cds_request = {
                     "product_type": [self.product_type],
-                    "variable": variables,
+                    # "variable": variables,
+                    "variable": [ _get_source_variable_from_key(ds, code) ],
                     "data_format": "netcdf",
                     # "download_format": "unarchived",
                     "download_format": "zip",
@@ -196,7 +200,7 @@ class ERA5DataSource(CDSDataSource):
                     "month": list(months),
                     "time": ["00:00"],
                 }
-                logger.info("&&&&&&&&&&ERA5 request: %s", cds_request)
+                logger.debug("&&&&&&&&&&ERA5 request: %s", cds_request)
 
                 if self.area:
                     cds_request["area"] = list(self.area)
@@ -207,7 +211,7 @@ class ERA5DataSource(CDSDataSource):
                 ts = _ts_for_filename(dt)
                 identifier = f"{ds}_{code}_{ts}"
 
-                yield FileRequest(
+                logging.info(FileRequest(
                     identifier=identifier,
                     filename=f"{identifier}.zip",
                     valid_time=dt,
@@ -216,6 +220,20 @@ class ERA5DataSource(CDSDataSource):
                         "cds_dataset": ds,
                         "cds_request": cds_request,
                         "variable_key": code,
+                    },
+                    expected_format="netcdf",
+                    variables=[code],
+                ))
+
+                yield FileRequest(
+                    identifier=identifier,
+                    filename=f"{identifier}.zip",
+                    valid_time=dt,
+                    reference_time=None,  # static / derived, not a forecast
+                    params={
+                        "cds_dataset": ds,
+                        "cds_request": cds_request,
+                        "variable_key": _get_key_from_source_variable(ds, code),
                     },
                     expected_format="netcdf",
                     variables=[code],
@@ -230,3 +248,24 @@ def _ts_for_filename(dt: datetime) -> str:
     # Your GeoTIFFFormatPlugin parses "YYYY-MM-DDTHH:MM:SS" (no trailing Z)
     dt = _as_utc(dt)
     return dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+def _get_source_variable_from_key(dataset:str, key: str) -> str:
+    try:
+        variables_dict = era5_constants.COLLECTIONS[dataset]["variables"]
+        res = next((v for v in variables_dict if v['key'] == key), None)
+        if res:
+            return res['source_variable']
+    except KeyError:
+        pass
+    return key
+
+
+def _get_key_from_source_variable(dataset:str, code: str) -> str:
+    try:
+        variables_dict = era5_constants.COLLECTIONS[dataset]["variables"]
+        res = next((v for v in variables_dict if v['source_variable'] == code), None)
+        if res:
+            return res['key']
+    except KeyError:
+        pass
+    return code
