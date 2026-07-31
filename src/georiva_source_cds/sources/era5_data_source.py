@@ -7,13 +7,23 @@ from __future__ import annotations
 
 import cdsapi
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
+from dateutil.relativedelta import relativedelta
 from typing import Iterator, Optional
 
 from georiva.sources.fetch import FileRequest
 from . import CDSDataSource, CDSFetchStrategy
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_pressure_levels(collection):
+    pressure_levels = set()
+    for item in collection.variables.all():
+        chunks = item.slug.rsplit("_")
+        pressure_levels.add(chunks[1])
+    return list(pressure_levels)
+
 
 class ERA5DataSource(CDSDataSource):
     """
@@ -35,15 +45,28 @@ class ERA5DataSource(CDSDataSource):
         # area as [north, west, south, east] (CDS order); built by the feed.
         self.area = config.get("area")
         self.requested_variables = config.get("variables", [])
+        logger.info(f"ERA5 config keys: {config}")
+        # TODO: find out how to get the pressure levels list. ECMWF supposedly gets it at this stage, but how ?
         self.product_type = config.get("product_type", "monthly_averaged_reanalysis")
         if "default_start_date" in config.keys():
-            logger.info(f"ERA5: default_start_date: {config.get('default_start_date')}")
             dt = config.get("default_start_date")
             if isinstance(dt, datetime):
                 self.default_start_date = dt
+            elif isinstance(dt, date):
+                self.default_start_date = datetime(dt.year, dt.month, dt.day, tzinfo=timezone.utc)
+            else:
+                logger.warning(f"Invalid default start date: {dt} ({type(dt)})")
+
 
     def get_default_start_date(self, *, collection=None) -> datetime:
         return self.default_start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    def get_default_end_date(self, *, collection=None) -> datetime:
+        """
+        Data is available only until previous month (at first day of the month
+        """
+        n = datetime.now(timezone.utc)
+        return datetime(year=n.year, month=n.month-1, day=1, tzinfo=timezone.utc)
 
     @property
     def name(self) -> str:
@@ -58,8 +81,18 @@ class ERA5DataSource(CDSDataSource):
         end_m = self._month_start(end)
         while cur <= end_m:
             yield cur
-            y, m = cur.year, cur.month
-            cur = cur.replace(year=y + 1, month=1) if m == 12 else cur.replace(month=m + 1)
+            cur = cur + relativedelta(months=+1)
+
+    def advance_start_from_latest(self, latest: datetime, *, collection=None) -> datetime:
+        """
+        Avoid refetching same period when using db latest.
+        Very simple for now since we only support monthly data
+
+        Called by BaseDataSource.get_time_window()
+        Uses collection.time_resolution to move to the NEXT period.
+        """
+        latest = _as_utc(latest)
+        return datetime(year=latest.year, month=latest.month+1, day=1, tzinfo=timezone.utc)
 
     def get_latest_available(self) -> Optional[datetime]:
         """
@@ -94,11 +127,18 @@ class ERA5DataSource(CDSDataSource):
         start_time, end_time = self.get_time_window(collection=collection)
         data_variables = collection.source_variables_list()
         logger.info(f"############ERA5 collection: {collection.to_json()}")
+
+        pressure_levels = []
+        if "pressure-levels" in collection.slug:
+            pressure_levels = _extract_pressure_levels(collection)
+            logger.info(f"ERA5 pressure_levels: {pressure_levels}")
+
         return self.generate_requests(
             start_time=start_time,
             end_time=end_time,
             variables=data_variables,
             collection_id=collection.slug,
+            pressure_levels=pressure_levels,
             **kwargs,
         )
 
@@ -109,6 +149,21 @@ class ERA5DataSource(CDSDataSource):
             variables: Optional[list[str]] = None,
             **kwargs,
     ) -> Iterator[FileRequest]:
+        """
+        Generates the requests for the CDS services.
+
+        In the case when we are dealing with the pressure-levels collection, we have to split the variable ids to extract:
+        - pressure level
+        - variable name
+
+        TODO: try to keep it as a single request including
+                - time range (years, months)
+                - variables range
+                - pressure levels if dealing with pressure levels collection
+            But since FileRequest declares specific `"variable_key": code,` and `valid_time=dt,`
+            this might require quite some changes in cds_data_source `post_process_fetched_file` function
+
+        """
         variables = variables or self.requested_variables
         if not variables:
             self.logger.warning(f"{self.label}: no variables requested; nothing to fetch")
@@ -119,24 +174,35 @@ class ERA5DataSource(CDSDataSource):
         start_time = _as_utc(start_time)
         end_time = _as_utc(end_time)
         logger.info("ERA5 request: %s %s %s", variables, (start_time, end_time), kwargs)
-        # TODO: extract and add the pressure-level var for pressure collection
-        for code in variables:
-            for dt in self._iter_months(start_time, end_time):
-                logger.info("ERA5 request: %s %s", code, dt)
+        desired_dates = [dt for dt in self._iter_months(start_time, end_time)]
+        logger.info(f"Desired dates: {desired_dates}")
+        years = set(dt.year for dt in desired_dates)
+        months = set(dt.month for dt in desired_dates)
+
+        # Extract and add the pressure-level var for pressure collection
+        # If not relevant, pressure_levels=[] and will be skipped later
+        pressure_levels = kwargs.get("pressure_levels", [])
+        logger.info(f" Gen requests pressure level is {pressure_levels}")
+        for dt in self._iter_months(start_time, end_time):
+            for code in variables:
+                logger.info("ERA5 atomic request: %s %s", code, dt)
                 cds_request = {
                     "product_type": [self.product_type],
-                    "variable": code,
+                    "variable": variables,
                     "data_format": "netcdf",
                     # "download_format": "unarchived",
                     "download_format": "zip",
-                    "year": [dt.year],
-                    "month": [dt.month],
-                    "time": [dt.strftime("%H:%M")],
+                    "year": list(years),
+                    "month": list(months),
+                    "time": ["00:00"],
                 }
                 logger.info("&&&&&&&&&&ERA5 request: %s", cds_request)
 
                 if self.area:
                     cds_request["area"] = list(self.area)
+
+                if pressure_levels:
+                    cds_request["pressure_level"] = pressure_levels
 
                 ts = _ts_for_filename(dt)
                 identifier = f"{ds}_{code}_{ts}"
@@ -154,6 +220,7 @@ class ERA5DataSource(CDSDataSource):
                     expected_format="netcdf",
                     variables=[code],
                 )
+                # yield None
 
 
 def _as_utc(dt: datetime) -> datetime:

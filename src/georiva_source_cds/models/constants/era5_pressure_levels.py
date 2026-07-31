@@ -47,7 +47,7 @@ def _pl_vars(base_key, base_name, source_units, var_longname, value_range=None, 
             "key": f"{base_key}_{lv}",
             "name": f"{base_name} at {lv} hPa",
             "source_units": source_units,
-            "source_variable": var_longname,
+            "source_variable": base_key,
             "pressure_level": lv,
             **({"output_units": output_units} if output_units else {}),
         }
