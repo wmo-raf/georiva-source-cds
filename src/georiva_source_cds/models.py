@@ -107,6 +107,45 @@ _VALUE_RANGES = {
     "monthly_sea_surface_temperature": (-2.0, 35.0),
 }
 
+# Each index's time statistic over its month or year (GeoRiva ADR 0051): a
+# total, a mean, or an extreme of the days in it. A count of days is a sum.
+# Those not listed (the SPI and SPEI indices) declare nothing.
+_TIME_STATISTICS = {
+    "monthly_temperature": "mean",
+    "monthly_daily_minimum_temperature": "mean",
+    "monthly_daily_maximum_temperature": "mean",
+    "monthly_daily_temperature_range": "mean",
+    "monthly_maximum_of_daily_maximum_temperature": "max",
+    "monthly_extreme_hot_days": "sum",
+    "monthly_very_extreme_hot_days": "sum",
+    "monthly_tropical_nights": "sum",
+    "annual_cooling_degree_days": "sum",
+    "monthly_minimum_of_daily_minimum_temperature": "min",
+    "monthly_frost_days": "sum",
+    "annual_heating_degree_days": "sum",
+    "monthly_precipitation": "sum",
+    "monthly_wet_days": "sum",
+    "monthly_precipitation_intensity": "mean",
+    "monthly_maximum_1_day_precipitation": "max",
+    "monthly_maximum_5_day_precipitation": "max",
+    "monthly_heavy_precipitation_days": "sum",
+    "monthly_very_heavy_precipitation_days": "sum",
+    "monthly_near_surface_specific_humidity": "mean",
+    "monthly_evaporation": "sum",
+    "monthly_runoff": "sum",
+    "monthly_soil_moisture_in_upper_soil_portion": "mean",
+    "annual_maximum_consecutive_dry_days": "max",
+    "monthly_daily_accumulated_potential_evapotranspiration": "sum",
+    "monthly_wind_speed": "mean",
+    "monthly_cloud_cover_percentage": "mean",
+    "monthly_surface_solar_radiation_downwards": "mean",
+    "monthly_surface_thermal_radiation_downwards": "mean",
+    "monthly_snowfall_precipitation": "sum",
+    "monthly_sea_ice_area_percentage": "mean",
+    "monthly_sea_surface_temperature": "mean",
+    "monthly_sea_level_pressure": "mean",
+}
+
 _CID_LABELS = {
     "heat_cold": "Heat & Cold",
     "wet_dry": "Wet & Dry",
@@ -154,6 +193,10 @@ def _build_collections() -> dict:
                 }
                 if v.code in _VALUE_RANGES:
                     var["value_range"] = _VALUE_RANGES[v.code]
+                if v.code in _TIME_STATISTICS:
+                    # Over the month or year each value stands for.
+                    var["time_statistic"] = _TIME_STATISTICS[v.code]
+                    var["statistic_window"] = "preceding_interval"
                 variables.append(var)
             
             groups = []
